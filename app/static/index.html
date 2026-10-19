@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clasificador de perros y gatos</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <main class="contenedor">
+    <header class="cabecera">
+      <h1>🐾 Clasificador de perros y gatos</h1>
+      <p class="subtitulo">Sube una imagen y el modelo te dirá si es un gato o un perro.</p>
+    </header>
+
+    <section class="tarjeta">
+      <div id="zonaSoltar" class="zona-soltar" tabindex="0" role="button"
+           aria-label="Arrastra una imagen aquí o pulsa para seleccionar un archivo">
+        <div class="icono-soltar">📤</div>
+        <p class="texto-soltar">Arrastra y suelta una imagen aquí</p>
+        <p class="texto-secundario">o</p>
+        <button type="button" id="botonSeleccionar" class="boton boton-secundario">
+          Seleccionar archivo
+        </button>
+        <p class="texto-ayuda">JPG, JPEG, PNG o WebP · máximo 5 MB</p>
+        <input type="file" id="inputArchivo" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" hidden>
+      </div>
+
+      <div id="zonaPreview" class="zona-preview oculto">
+        <img id="imagenPreview" alt="Vista previa de la imagen seleccionada">
+        <p id="nombreArchivo" class="nombre-archivo"></p>
+      </div>
+
+      <div class="acciones">
+        <button type="button" id="botonClasificar" class="boton boton-primario" disabled>
+          Clasificar
+        </button>
+        <button type="button" id="botonLimpiar" class="boton boton-neutro" disabled>
+          Limpiar
+        </button>
+      </div>
+
+      <div id="cargando" class="cargando oculto" aria-live="polite">
+        <span class="spinner" aria-hidden="true"></span>
+        <span>Clasificando imagen…</span>
+      </div>
+
+      <div id="mensajeError" class="mensaje-error oculto" role="alert"></div>
+
+      <div id="resultado" class="resultado oculto" aria-live="polite">
+        <div class="resultado-encabezado">
+          <span id="iconoResultado" class="icono-resultado">🐱</span>
+          <div>
+            <p class="etiqueta-resultado">Resultado</p>
+            <h2 id="claseResultado">Gato</h2>
+          </div>
+        </div>
+        <div class="barra-contenedor">
+          <div id="barraConfianza" class="barra-confianza"></div>
+        </div>
+        <p id="textoConfianza" class="texto-confianza"></p>
+        <div id="avisoIncierta" class="aviso-incierta oculto">
+          ⚠️ Predicción incierta: la confianza está cerca del 50 %. Interpreta el resultado con cautela.
+        </div>
+      </div>
+    </section>
+
+    <section class="tarjeta estadisticas">
+      <h2>Estadísticas del servicio</h2>
+      <div class="grid-estadisticas">
+        <div><span class="dato" id="statTotal">–</span><span class="etiqueta">Predicciones</span></div>
+        <div><span class="dato" id="statGato">–</span><span class="etiqueta">Gatos</span></div>
+        <div><span class="dato" id="statPerro">–</span><span class="etiqueta">Perros</span></div>
+        <div><span class="dato" id="statConfianza">–</span><span class="etiqueta">Confianza media</span></div>
+        <div><span class="dato" id="statLatencia">–</span><span class="etiqueta">Latencia media</span></div>
+        <div><span class="dato" id="statInciertas">–</span><span class="etiqueta">Inciertas</span></div>
+      </div>
+    </section>
+
+    <footer class="pie">
+      <p>Modelo MobileNetV2 · Uso educativo · Las predicciones pueden contener errores.</p>
+    </footer>
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

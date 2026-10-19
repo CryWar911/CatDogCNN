@@ -1,0 +1,20 @@
+# Dependencias del proyecto de clasificación de imágenes gato/perro
+# Python 3.10 - 3.12 (TensorFlow no publica ruedas para 3.13/3.14 en todas las versiones)
+
+tensorflow>=2.15
+scikit-learn>=1.3
+matplotlib>=3.7
+pandas>=2.0
+pillow>=10.0
+numpy>=1.24
+
+# API y servidor web
+fastapi>=0.110
+uvicorn[standard]>=0.27
+python-multipart>=0.0.9
+
+# Notebook e informe
+jupyter>=1.0
+nbformat>=5.9
+nbconvert>=7.0
+reportlab>=4.0

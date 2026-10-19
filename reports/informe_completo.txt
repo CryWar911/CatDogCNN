@@ -1,0 +1,420 @@
+====================================================================================================
+INFORME COMPLETO DEL PROYECTO: CLASIFICACIÓN DE IMÁGENES DE PERROS Y GATOS
+Documento generado automáticamente a partir de los artefactos reales del proyecto.
+Fecha de generación: 2026-10-19T15:02:02
+Raíz del proyecto: E:\gatos
+====================================================================================================
+
+LEYENDA DE ESTADOS: COMPLETADO / FALLIDO / NO EJECUTADO / NO VERIFICADO / NO DISPONIBLE
+
+1. RESUMEN DEL PROYECTO
+----------------------------------------------------------------------------------------------------
+Objetivo: construir un sistema completo de clasificación binaria de imágenes que
+distinga gatos de perros, con preparación y validación de datos, un modelo de
+producción basado en MobileNetV2, una CNN académica para experimentos comparativos,
+evaluación sobre un conjunto de prueba independiente, una API FastAPI con interfaz
+web en español y monitoreo de predicciones.
+
+Problema abordado: clasificación supervisada de imágenes (visión por computador).
+Clases: gato = 0, perro = 1.
+Tecnologías: Python 3.12, TensorFlow/Keras, scikit-learn, matplotlib, Pillow,
+pandas, FastAPI, Uvicorn, HTML, CSS y JavaScript puro.
+
+Estado general de artefactos principales:
+  - Modelo de producción (models/model.keras): COMPLETADO
+  - Métricas de prueba (reports/metrics.json): COMPLETADO
+  - Experimentos (reports/experiments.csv): COMPLETADO
+  - Notebook (notebooks/taller_cnn.ipynb): COMPLETADO
+  - Informe PDF (reports/informe_cnn.pdf): COMPLETADO
+  - Pruebas de API (reports/api_test_results.json): COMPLETADO
+
+2. ENTORNO DE EJECUCIÓN
+----------------------------------------------------------------------------------------------------
+Sistema operativo: Windows-11-10.0.26100-SP0
+Python: 3.12.10 (tags/v3.12.10:0cc8128, Apr  8 2025, 12:21:36) [MSC v.1943 64 bit (AMD64)]
+Ejecutable: E:\gatos\venv\Scripts\python.exe
+CPU: Intel64 Family 6 Model 151 Stepping 2, GenuineIntel (20 hilos lógicos)
+GPU: No se detectaron GPUs
+Librerías instaladas (versión obtenida de importlib.metadata):
+  - tensorflow: 2.21.0
+  - keras: 3.15.1
+  - numpy: 2.5.4
+  - scikit-learn: 1.9.1
+  - matplotlib: 3.11.2
+  - pillow: 13.0.0
+  - fastapi: 0.149.0
+  - uvicorn: 0.54.0
+  - pandas: 3.0.6
+  - reportlab: 5.0.1
+  - nbformat: 5.11.1
+  - nbconvert: 7.17.2
+  - python-multipart: 0.0.32
+
+Nota verificable: el sistema tenía Python 3.14.3, pero 'pip index versions'
+no encontró ninguna distribución de TensorFlow para esa versión. Por ello se
+instaló Python 3.12.10 y se creó el entorno virtual 'venv' con él.
+
+3. PREPARACIÓN DE DATOS
+----------------------------------------------------------------------------------------------------
+Ubicación del dataset: E:\gatos\PetImages
+Archivos del dataset NO modificados: se validaron y descartaron lógicamente, sin borrar.
+Fecha del informe de calidad: 2026-10-19T14:36:05
+Criterio de validación: Image.open() + verify() + load() + min 16x16 px
+Conteos por clase:
+  - Cat: examinadas=12499, válidas=12498, inválidas=1
+  - Dog: examinadas=12499, válidas=12499, inválidas=0
+  - TOTAL: examinadas=24998, válidas=24997, inválidas=1
+Archivos inválidos detectados (descartados lógicamente, no borrados):
+  - PetImages\Cat\5673.jpg: imagen demasiado pequena
+
+Semilla: 42
+Máximo por clase: 3000
+Tamaños de las particiones: {'train': 4800, 'val': 600, 'test': 600}
+Tamaños por clase: {'Cat': {'seleccionadas': 3000, 'train': 2400, 'val': 300, 'test': 300}, 'Dog': {'seleccionadas': 3000, 'train': 2400, 'val': 300, 'test': 300}}
+Etiquetas: gato = 0, perro = 1.
+Partición estratificada 80 % entrenamiento, 10 % validación, 10 % prueba.
+Solapamiento entre particiones: 0 archivos (comprobado comparando las tres listas).
+
+Preprocesamiento aplicado:
+  - Redimensionado a 224x224x3 (modelo de producción).
+  - Normalización de píxeles a [0,1] una sola vez (división entre 255).
+  - Aumento SOLO en entrenamiento: rotación <= 20 grados, volteo horizontal,
+    desplazamiento horizontal y vertical, y zoom.
+  - Pipeline tf.data con cache(), batch(32) y prefetch().
+  - En inferencia se aplica exactamente el mismo resize y /255 (sin duplicar).
+
+4. ARQUITECTURA DEL MODELO DE PRODUCCIÓN
+----------------------------------------------------------------------------------------------------
+Base: MobileNetV2 preentrenada en ImageNet, include_top=False, base congelada.
+Cabeza: GlobalAveragePooling2D -> Dense(128, ReLU) -> Dropout(0.5) -> Dense(1, sigmoid).
+Optimizador: Adam, learning rate = 0.0001.
+Pérdida: binary crossentropy.
+Métricas: accuracy, precision y recall.
+Callbacks: EarlyStopping(monitor='val_loss', patience=2, restore_best_weights=True).
+Épocas máximas: 5. Fine-tuning: no realizado.
+Parámetros totales: 2422081
+Parámetros entrenables: 164097
+Parámetros no entrenables: 2257984
+Batch size: 32
+Coherencia del preprocesamiento: los datasets entregan imágenes [0,1] y el modelo
+no incluye capas de normalización adicionales; la API usa el mismo resize y /255.
+
+5. ARQUITECTURA DE LA CNN ACADÉMICA
+----------------------------------------------------------------------------------------------------
+Entrada: 96x96x3 (reducción para acotar el costo computacional de los experimentos).
+Capas:
+  1. Conv2D(32 filtros, kernel 3x3, padding='same', activación ReLU)
+  2. MaxPooling2D(2x2)
+  3. Conv2D(64 filtros, kernel 3x3, padding='same', activación ReLU)
+  4. MaxPooling2D(2x2)
+  5. Conv2D(128 filtros, kernel 3x3, padding='same', activación ReLU)
+  6. MaxPooling2D(2x2)
+  7. Flatten
+  8. Dense(64, activación ReLU)
+  9. Dropout(0.5) opcional según configuración
+ 10. Dense(2, activación Softmax)
+Pérdida: categorical crossentropy (etiquetas one-hot).
+Parámetros de la CNN académica: 1273090
+
+6. PROCESO DE ENTRENAMIENTO (MobileNetV2)
+----------------------------------------------------------------------------------------------------
+Fecha del registro: 2026-10-19T14:49:50
+Épocas ejecutadas: 5 (máximo configurado: 5)
+Duración total: 559.15 segundos
+Mejor época (menor val_loss): 5
+Mejor val_loss: 0.0429
+Mejor val_accuracy: 0.9867
+Métricas por época (entrenamiento y validación):
+  Época       loss   val_loss   accuracy   val_acc  val_prec   val_rec
+  --------------------------------------------------------------------
+  1         0.2506     0.0816     0.9013    0.9750    0.9766    0.9733
+  2         0.1157     0.0554     0.9550    0.9800    0.9800    0.9800
+  3         0.1042     0.0496     0.9617    0.9833    0.9801    0.9867
+  4         0.0878     0.0466     0.9654    0.9817    0.9801    0.9833
+  5         0.0912     0.0429     0.9660    0.9867    0.9834    0.9900
+
+Estado: COMPLETADO. El modelo se guardó en models/model.keras.
+El entrenamiento final se completó sin interrupciones. El primer intento
+falló por el problema de decodificación documentado en la sección 13.
+
+7. EXPERIMENTOS (CNN ACADÉMICA)
+----------------------------------------------------------------------------------------------------
+Fecha: 2026-10-19T14:55:19
+Semilla: 42
+Entrada: 96x96
+Máximo de entrenamiento por clase: 1500
+Máximo de validación por clase: 300
+Épocas por experimento: 5
+Configuraciones realmente ejecutadas:
+  Experimento                            Dropout  Optim  Aum Époc  Acc train  Acc val  Dur (s)
+  --------------------------------------------------------------------------------------------
+  exp1_adam_dropout_aumento                  0.5   adam   Sí    5     0.6180   0.6283    27.92
+  exp2_adam_sin_dropout_aumento              0.0   adam   Sí    5     0.6927   0.7217    28.62
+  exp3_sgd_dropout_aumento                   0.5    sgd   Sí    5     0.5407   0.5917    26.78
+  exp4_adam_dropout_sin_aumento              0.5   adam   No    5     0.6240   0.6583    27.38
+  exp5_sgd_sin_dropout_sin_aumento           0.0    sgd   No    5     0.6250   0.6433    25.81
+
+Pares comparables (misma configuración salvo la variable estudiada):
+  - Dropout: exp1_adam_dropout_aumento vs exp2_adam_sin_dropout_aumento
+  - Optimizador: exp1_adam_dropout_aumento vs exp3_sgd_dropout_aumento
+  - Aumento: exp1_adam_dropout_aumento vs exp4_adam_dropout_sin_aumento
+  - exp5_sgd_sin_dropout_sin_aumento se ejecutó como configuración adicional.
+Experimentos fallidos: ninguno.
+
+8. EVALUACIÓN FINAL (CONJUNTO DE PRUEBA)
+----------------------------------------------------------------------------------------------------
+Fecha: 2026-10-19T14:56:25
+Modelo evaluado: model.keras
+Conjunto: test | imágenes: 600
+Umbral: 0.5 | positivo: perro (1) | negativo: gato (0)
+Accuracy:  0.9733
+Precision: 0.9641
+Recall:    0.9833
+F1:        0.9736
+AUC:       0.9967
+Matriz de confusión: [[289, 11], [5, 295]]
+  Formato: filas = real [gato, perro], columnas = predicción [gato, perro].
+  VP (perro predicho perro) = 295
+  VN (gato predicho gato)   = 289
+  FP (gato predicho perro)  = 11
+  FN (perro predicho gato)  = 5
+Tiempo medio de inferencia:
+  - Imágenes medidas: 100
+  - Media: 166.48 ms
+  - Mediana: 162.14 ms
+  - p95: 220.23 ms
+  - Mínimo: 103.97 ms | Máximo: 244.71 ms
+  - Condiciones: CPU, inferencia individual (batch=1), 3 llamadas de
+    calentamiento previas, medición con time.perf_counter sobre el modelo Keras.
+Objetivo accuracy >= 92 %: CUMPLIDO (accuracy real = 0.9733).
+Objetivo latencia media < 200 ms: CUMPLIDO (latencia real = 166.48 ms).
+No se reentrenó automáticamente tras la evaluación.
+
+9. ANÁLISIS DE RESULTADOS
+----------------------------------------------------------------------------------------------------
+9.1 Resultados observados
+  - Accuracy train final: 0.9660
+  - Accuracy val final:   0.9867
+  - Brecha train - val:   -0.0206
+  - Loss train final:     0.0912
+  - Loss val final:       0.0429
+  - Mínima val_loss:      0.0429
+  - Accuracy test:        0.9733
+  - AUC test:             0.9967
+
+9.2 Interpretación (basada en los datos anteriores)
+  - La brecha train-validación es inferior a 0.05; con los datos
+    observados no se aprecia un sobreajuste severo.
+  - En la última época la accuracy de validación fue superior a la
+    de entrenamiento (brecha negativa), un patrón habitual cuando
+    Dropout y aumento de datos están activos durante el entrenamiento.
+  - La val_loss final coincide con la mínima observada; no hay señal
+    de degradación al final del entrenamiento.
+  - El objetivo de accuracy >= 92 % se cumple.
+  - El objetivo de latencia media < 200 ms se cumple.
+  - Dropout: val_accuracy exp1_adam_dropout_aumento = 0.6283 frente a exp2_adam_sin_dropout_aumento = 0.7217 (diferencia -0.0933).
+  - Adam vs SGD: val_accuracy exp1_adam_dropout_aumento = 0.6283 frente a exp3_sgd_dropout_aumento = 0.5917 (diferencia +0.0367).
+  - Aumento: val_accuracy exp1_adam_dropout_aumento = 0.6283 frente a exp4_adam_dropout_sin_aumento = 0.6583 (diferencia -0.0300).
+  - Estas diferencias corresponden a una sola ejecución por configuración;
+    no se realizó validación cruzada ni prueba de significancia estadística,
+    por lo que son observaciones descriptivas y no conclusiones causales.
+
+10. APLICACIÓN WEB Y API
+----------------------------------------------------------------------------------------------------
+Endpoints implementados en app/main.py:
+  - GET /        -> sirve app/static/index.html.
+  - GET /health  -> estado del servicio y del modelo (cargado o no).
+  - POST /predict-> recibe multipart/form-data con el campo 'file'.
+  - GET /stats   -> estadísticas del monitoreo.
+Validaciones de /predict:
+  - Extensión permitida: .jpg, .jpeg, .png, .webp.
+  - Tipo MIME declarado permitido: image/jpeg, image/jpg, image/png, image/webp.
+  - Tamaño máximo: 5 MB (5 * 1024 * 1024 bytes).
+  - Contenido real validado con PIL: open() + verify() + load() + formato real.
+Códigos HTTP: 400 imagen inválida, 413 demasiado grande, 415 formato no admitido,
+503 modelo no disponible, 200 éxito.
+Formato de respuesta: {"clase":"perro","confianza":0.97}
+Regla: sigmoid >= 0.5 -> perro con confianza = sigmoid; sigmoid < 0.5 -> gato
+con confianza = 1 - sigmoid. Si la confianza está entre 0.40 y 0.60 se añade
+"incierta": true.
+Carga del modelo: una sola vez al iniciar mediante lifespan.
+CORS: habilitado.
+Frontend (app/static): interfaz en español, responsive, arrastrar y soltar,
+selector de archivo, vista previa, botón Clasificar con indicador de carga,
+botón Limpiar, resultado con icono/clase/barra de confianza, aviso de predicción
+incierta y mensajes de error. Usa fetch('/predict') con ruta relativa.
+Verificación web: GET / y los recursos /static/style.css y /static/app.js
+respondieron HTTP 200 y el HTML contiene la interfaz esperada. No se realizó
+una inspección visual automatizada en navegador (NO VERIFICADO visualmente).
+
+11. MONITOREO
+----------------------------------------------------------------------------------------------------
+Archivo: reports/predictions_log.csv
+Campos: fecha, nombre_archivo, clase, confianza, tiempo_inferencia_ms,
+ancho, alto, brillo_medio, incierta.
+Imágenes inciertas: reports/uncertain/ con nombre único (fecha + uuid).
+Solo se guardan imágenes de predicciones inciertas; no se guardan las demás.
+No se registran IP ni datos personales.
+Predicciones registradas hasta ahora: 6
+  - Gatos: 3 (50.00%)
+  - Perros: 3 (50.00%)
+  - Confianza media: 0.9736
+  - Latencia media: 199.62 ms
+  - Inciertas: 0 (0.00%)
+Imágenes inciertas guardadas: 0
+En las pruebas realizadas no hubo predicciones inciertas, por lo que no se
+creó ningún archivo en reports/uncertain/. El mecanismo de guardado está
+implementado y se activa únicamente cuando 0.40 <= confianza <= 0.60.
+
+12. PRUEBAS REALIZADAS
+----------------------------------------------------------------------------------------------------
+12.1 Comandos ejecutados y estado
+  [COMPLETADO] python --version; py -0p  -> Python 3.14.3 del sistema; luego se instaló 3.12.10.
+  [COMPLETADO] python -m pip index versions tensorflow  -> Sin distribución para Python 3.14.
+  [COMPLETADO] winget install --id Python.Python.3.12 --scope user --silent  -> Python 3.12.10 instalado.
+  [COMPLETADO] py -3.12 -m venv E:\gatos\venv  -> Entorno virtual creado.
+  [COMPLETADO] venv\Scripts\python.exe -m pip install --upgrade pip  -> pip 26.2.1.
+  [COMPLETADO] venv\Scripts\python.exe -m pip install -r requirements.txt  -> Dependencias instaladas.
+  [COMPLETADO] python -m src.data_prep  -> Validación y partición.
+  [COMPLETADO] python -m src.train  -> Entrenamiento MobileNetV2.
+  [COMPLETADO] python -m src.experiments  -> Experimentos CNN académica.
+  [COMPLETADO] python -m src.evaluate  -> Evaluación sobre test.
+  [COMPLETADO] python -m src.make_notebook  -> Generación del notebook.
+  [COMPLETADO] jupyter nbconvert --to notebook --execute --inplace notebooks/taller_cnn.ipynb  -> Ejecución del notebook.
+  [COMPLETADO] python -m src.make_pdf  -> Generación del PDF.
+  [COMPLETADO] uvicorn app.main:app --host 127.0.0.1 --port 8000  -> Servidor web.
+  [COMPLETADO] python scripts/test_api.py --base-url http://127.0.0.1:8000  -> Pruebas de API.
+
+12.2 Pruebas de endpoints
+Fecha: 2026-10-19T14:58:15 | URL base: http://127.0.0.1:8000
+  [OK] GET / (interfaz web): HTTP 200 (esperado 200), 61.91 ms
+         respuesta (fragmento): <!DOCTYPE html> <html lang="es"> <head>   <meta charset="UTF-8">   <meta name="viewport" content="width=device-width, initial-scale=1.0">   <title>Clasificador de perros y gatos</title>   <link rel="s
+  [OK] GET /health: HTTP 200 (esperado 200), 0.99 ms
+         respuesta: {"status": "ok", "modelo_cargado": true, "modelo": "model.keras", "ruta_modelo": "E:\\gatos\\models\\model.keras", "error_modelo": null, "hora": "2026-10-19T14:58:15"}
+  [OK] POST /predict gato 1 (6488.jpg): HTTP 200 (esperado 200), 846.34 ms
+         respuesta: {"clase": "gato", "confianza": 0.9972}
+  [OK] POST /predict gato 2 (11288.jpg): HTTP 200 (esperado 200), 89.47 ms
+         respuesta: {"clase": "gato", "confianza": 0.9941}
+  [OK] POST /predict gato 3 (11120.jpg): HTTP 200 (esperado 200), 95.62 ms
+         respuesta: {"clase": "gato", "confianza": 0.9826}
+  [OK] POST /predict perro 1 (783.jpg): HTTP 200 (esperado 200), 69.37 ms
+         respuesta: {"clase": "perro", "confianza": 0.9992}
+  [OK] POST /predict perro 2 (8995.jpg): HTTP 200 (esperado 200), 114.01 ms
+         respuesta: {"clase": "perro", "confianza": 0.9962}
+  [OK] POST /predict perro 3 (7454.jpg): HTTP 200 (esperado 200), 90.91 ms
+         respuesta: {"clase": "perro", "confianza": 0.8725}
+  [OK] POST /predict archivo inválido (texto con extensión .jpg): HTTP 400 (esperado 400), 53.82 ms
+         respuesta: {"detail": "El contenido del archivo no es una imagen válida: cannot identify image file <_io.BytesIO object at 0x00000221315361B0>"}
+  [OK] POST /predict extensión no permitida (.txt): HTTP 415 (esperado 415), 8.77 ms
+         respuesta: {"detail": "Extensión no permitida. Usa JPG, JPEG, PNG o WebP."}
+  [OK] POST /predict archivo > 5 MB: HTTP 413 (esperado 413), 30.46 ms
+         respuesta: {"detail": "El archivo supera el límite de 5 MB (5.00 MB)."}
+  [OK] GET /stats: HTTP 200 (esperado 200), 11.44 ms
+         respuesta: {"total_predicciones": 6, "proporcion_gato": 0.5, "proporcion_perro": 0.5, "confianza_media": 0.9736, "latencia_media_ms": 199.62, "porcentaje_inciertas": 0.0, "conteo": {"gato": 3, "perro": 3}, "imagenes_inciertas_guardadas": 0}
+Resumen: 12/12 pruebas exitosas, 0 fallidas.
+
+12.3 Notebook
+  - Celdas de código: 8
+  - Celdas ejecutadas (execution_count no nulo): 8
+  - Celdas con salidas guardadas: 8
+  - Máximo execution_count: 8
+  - Estado: COMPLETADO (todas las celdas de código ejecutadas).
+
+13. INCIDENCIAS Y LIMITACIONES
+----------------------------------------------------------------------------------------------------
+Incidencias reales encontradas:
+  1. Python 3.14.3 no tiene ruedas de TensorFlow disponibles.
+     Causa: TensorFlow no publica distribuciones para esa versión de Python.
+     Corrección: se instaló Python 3.12.10 con winget y se creó el venv con él.
+     Estado: CORREGIDO.
+  2. El proyecto inicial solo contenía PetImages/ y archive.zip.
+     Causa: no existía código ni estructura previa.
+     Corrección: se creó toda la estructura solicitada sin tocar PetImages/.
+     Estado: CORREGIDO.
+  3. El primer entrenamiento fallo en la epoca 1 con 'Number of channels inherent in the image must be 1, 3 or 4, was 2' al usar tf.io.decode_image.
+     Causa: El dataset contiene al menos una imagen valida para PIL con 2 canales (escala de grises + alfa) que el decodificador de TensorFlow rechaza.
+     Corrección: Se cambio la decodificacion del pipeline tf.data a PIL con conversion explicita a RGB, garantizando ademas coherencia con la inferencia.
+     Estado: CORREGIDO
+  4. El pipeline de la CNN academica fallo con 'Value passed to parameter indices has DataType float32' en tf.one_hot.
+     Causa: La etiqueta llegaba como float32 tras las transformaciones del dataset.
+     Corrección: Se fuerza tf.cast(label, tf.int32) antes de tf.one_hot.
+     Estado: CORREGIDO
+  5. La generacion del PDF fallo con KeyError: "Style 'Bullet' already defined in stylesheet".
+     Causa: El estilo 'Bullet' ya existe en la hoja de estilos por defecto de reportlab.
+     Corrección: Se renombro el estilo personalizado a 'BulletC'.
+     Estado: CORREGIDO
+  6. La generacion del PDF fallo con UnboundLocalError en la variable 'cm'.
+     Causa: La variable local de la matriz de confusion ('cm') ocultaba la unidad de medida importada de reportlab dentro de main().
+     Corrección: Se renombro la matriz de confusion a 'cm_val'.
+     Estado: CORREGIDO
+
+Limitaciones:
+  - Dataset con posibles etiquetas erróneas; no se auditó manualmente cada imagen.
+  - Entrenamiento acotado a 5 épocas y hasta 3000 imágenes por clase.
+  - Experimentos académicos a 96x96 y con subconjunto por límites de cómputo.
+  - Sin GPU: los tiempos corresponden a CPU.
+  - Una sola ejecución por configuración; sin validación cruzada ni significancia.
+  - No se usó Docker, Grad-CAM, pytest, fine-tuning ni scripts de drift.
+
+Tareas no ejecutadas o no verificadas:
+  - Ninguna de las tareas principales quedó pendiente según los artefactos.
+
+14. CONCLUSIONES
+----------------------------------------------------------------------------------------------------
+  - El modelo de producción alcanzó accuracy = 0.9733 y AUC = 0.9967 sobre 600 imágenes de prueba.
+  - El objetivo de accuracy >= 92 % se cumplió.
+  - El objetivo de latencia media < 200 ms se cumplió (media observada = 166.48 ms en CPU).
+  - La CNN académica permitió comparar Dropout, Adam/SGD y aumento de datos en
+    un escenario acotado. Los resultados están en reports/experiments.csv y
+    corresponden a ejecuciones reales.
+  - No se debe afirmar que un experimento es mejor de forma general: solo se
+    observó una ejecución por configuración sobre un subconjunto.
+
+15. INVENTARIO DE EVIDENCIAS
+----------------------------------------------------------------------------------------------------
+  - models\model.keras: COMPLETADO (11,600,860 bytes, modificado 2026-10-19T14:49:50)
+  - reports\metrics.json: COMPLETADO (888 bytes, modificado 2026-10-19T14:56:25)
+  - reports\training_history.json: COMPLETADO (1,953 bytes, modificado 2026-10-19T14:49:50)
+  - reports\training_curves.png: COMPLETADO (69,521 bytes, modificado 2026-10-19T14:56:08)
+  - reports\confusion_matrix.png: COMPLETADO (21,405 bytes, modificado 2026-10-19T14:56:07)
+  - reports\roc_curve.png: COMPLETADO (34,421 bytes, modificado 2026-10-19T14:56:07)
+  - reports\experiments.csv: COMPLETADO (1,074 bytes, modificado 2026-10-19T14:55:19)
+  - reports\experiments_detail.json: COMPLETADO (6,821 bytes, modificado 2026-10-19T14:55:19)
+  - reports\experiments_comparison.png: COMPLETADO (44,723 bytes, modificado 2026-10-19T14:55:19)
+  - reports\data_quality.json: COMPLETADO (594 bytes, modificado 2026-10-19T14:38:14)
+  - reports\manifest.json: COMPLETADO (721,274 bytes, modificado 2026-10-19T14:38:14)
+  - reports\predictions_log.csv: COMPLETADO (511 bytes, modificado 2026-10-19T14:58:17)
+  - reports\api_test_results.json: COMPLETADO (4,757 bytes, modificado 2026-10-19T14:58:17)
+  - notebooks\taller_cnn.ipynb: COMPLETADO (247,390 bytes, modificado 2026-10-19T14:56:50)
+  - reports\informe_cnn.pdf: COMPLETADO (242,418 bytes, modificado 2026-10-19T14:57:36)
+  - reports\informe_completo.txt: COMPLETADO (este mismo archivo, escrito al finalizar)
+  - reports/uncertain/: 0 archivo(s).
+
+16. REPRODUCIBILIDAD
+----------------------------------------------------------------------------------------------------
+Comandos exactos (desde la raíz del proyecto, con el venv activo):
+  py -3.12 -m venv venv
+  .\venv\Scripts\Activate.ps1
+  python -m pip install --upgrade pip
+  pip install -r requirements.txt
+  python -m src.data_prep
+  python -m src.train
+  python -m src.experiments
+  python -m src.evaluate
+  python -m src.make_notebook
+  jupyter nbconvert --to notebook --execute --inplace notebooks/taller_cnn.ipynb
+  python -m src.make_pdf
+  python -m src.make_final_report
+  uvicorn app.main:app --host 127.0.0.1 --port 8000
+  python scripts/test_api.py --base-url http://127.0.0.1:8000
+
+Notas de reproducibilidad:
+  - Semilla fija: 42.
+  - Los artefactos existentes se reutilizan por defecto; usar force=True en
+    data_prep.build_manifest/validate_dataset para regenerarlos.
+  - Los pesos ImageNet se descargan si hay Internet; si no, train.py avisa y
+    entrena la base con pesos aleatorios.
+
+====================================================================================================
+FIN DEL INFORME COMPLETO
+====================================================================================================

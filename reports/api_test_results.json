@@ -1,0 +1,163 @@
+{
+  "fecha": "2026-10-19T14:58:15",
+  "base_url": "http://127.0.0.1:8000",
+  "pruebas": [
+    {
+      "prueba": "GET / (interfaz web)",
+      "status_http": 200,
+      "status_esperado": 200,
+      "exito": true,
+      "error_transporte": null,
+      "tiempo_ms": 61.91,
+      "respuesta": "<!DOCTYPE html>\n<html lang=\"es\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>Clasificador de perros y gatos</title>\n  <link rel=\"stylesheet\" href=\"/static/style.css\">\n</head>\n<body>\n  <main class=\"contenedor\">\n    <header class=\"cabecera\">\n      <h1>🐾 Clasificador de perros y gatos</h1>\n      <p class=\"subtitulo\">Sube una imagen y el modelo te dirá si es un gato o un perro.</p>\n    </header>\n\n    <section class=\"tarjeta\">\n    ",
+      "contiene_html": true
+    },
+    {
+      "prueba": "GET /health",
+      "status_http": 200,
+      "status_esperado": 200,
+      "exito": true,
+      "error_transporte": null,
+      "tiempo_ms": 0.99,
+      "respuesta": {
+        "status": "ok",
+        "modelo_cargado": true,
+        "modelo": "model.keras",
+        "ruta_modelo": "E:\\gatos\\models\\model.keras",
+        "error_modelo": null,
+        "hora": "2026-10-19T14:58:15"
+      }
+    },
+    {
+      "prueba": "POST /predict gato 1 (6488.jpg)",
+      "status_http": 200,
+      "status_esperado": 200,
+      "exito": true,
+      "error_transporte": null,
+      "tiempo_ms": 846.34,
+      "respuesta": {
+        "clase": "gato",
+        "confianza": 0.9972
+      }
+    },
+    {
+      "prueba": "POST /predict gato 2 (11288.jpg)",
+      "status_http": 200,
+      "status_esperado": 200,
+      "exito": true,
+      "error_transporte": null,
+      "tiempo_ms": 89.47,
+      "respuesta": {
+        "clase": "gato",
+        "confianza": 0.9941
+      }
+    },
+    {
+      "prueba": "POST /predict gato 3 (11120.jpg)",
+      "status_http": 200,
+      "status_esperado": 200,
+      "exito": true,
+      "error_transporte": null,
+      "tiempo_ms": 95.62,
+      "respuesta": {
+        "clase": "gato",
+        "confianza": 0.9826
+      }
+    },
+    {
+      "prueba": "POST /predict perro 1 (783.jpg)",
+      "status_http": 200,
+      "status_esperado": 200,
+      "exito": true,
+      "error_transporte": null,
+      "tiempo_ms": 69.37,
+      "respuesta": {
+        "clase": "perro",
+        "confianza": 0.9992
+      }
+    },
+    {
+      "prueba": "POST /predict perro 2 (8995.jpg)",
+      "status_http": 200,
+      "status_esperado": 200,
+      "exito": true,
+      "error_transporte": null,
+      "tiempo_ms": 114.01,
+      "respuesta": {
+        "clase": "perro",
+        "confianza": 0.9962
+      }
+    },
+    {
+      "prueba": "POST /predict perro 3 (7454.jpg)",
+      "status_http": 200,
+      "status_esperado": 200,
+      "exito": true,
+      "error_transporte": null,
+      "tiempo_ms": 90.91,
+      "respuesta": {
+        "clase": "perro",
+        "confianza": 0.8725
+      }
+    },
+    {
+      "prueba": "POST /predict archivo inválido (texto con extensión .jpg)",
+      "status_http": 400,
+      "status_esperado": 400,
+      "exito": true,
+      "error_transporte": null,
+      "tiempo_ms": 53.82,
+      "respuesta": {
+        "detail": "El contenido del archivo no es una imagen válida: cannot identify image file <_io.BytesIO object at 0x00000221315361B0>"
+      }
+    },
+    {
+      "prueba": "POST /predict extensión no permitida (.txt)",
+      "status_http": 415,
+      "status_esperado": 415,
+      "exito": true,
+      "error_transporte": null,
+      "tiempo_ms": 8.77,
+      "respuesta": {
+        "detail": "Extensión no permitida. Usa JPG, JPEG, PNG o WebP."
+      }
+    },
+    {
+      "prueba": "POST /predict archivo > 5 MB",
+      "status_http": 413,
+      "status_esperado": 413,
+      "exito": true,
+      "error_transporte": null,
+      "tiempo_ms": 30.46,
+      "respuesta": {
+        "detail": "El archivo supera el límite de 5 MB (5.00 MB)."
+      }
+    },
+    {
+      "prueba": "GET /stats",
+      "status_http": 200,
+      "status_esperado": 200,
+      "exito": true,
+      "error_transporte": null,
+      "tiempo_ms": 11.44,
+      "respuesta": {
+        "total_predicciones": 6,
+        "proporcion_gato": 0.5,
+        "proporcion_perro": 0.5,
+        "confianza_media": 0.9736,
+        "latencia_media_ms": 199.62,
+        "porcentaje_inciertas": 0.0,
+        "conteo": {
+          "gato": 3,
+          "perro": 3
+        },
+        "imagenes_inciertas_guardadas": 0
+      }
+    }
+  ],
+  "resumen": {
+    "total": 12,
+    "exitosas": 12,
+    "fallidas": 0
+  }
+}
