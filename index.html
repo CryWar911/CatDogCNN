@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Abriendo la aplicación | Clasificador de perros y gatos</title>
+  <style>
+    :root {
+      --fondo: #f4f6fb;
+      --tarjeta: #ffffff;
+      --texto: #1e2433;
+      --suave: #667085;
+      --primario: #4f46e5;
+      --borde: #e4e7ec;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+      background:
+        radial-gradient(1000px 500px at 10% -10%, #e0e7ff 0%, transparent 60%),
+        var(--fondo);
+      color: var(--texto);
+    }
+    main {
+      width: min(620px, 100%);
+      background: var(--tarjeta);
+      border: 1px solid var(--borde);
+      border-radius: 16px;
+      box-shadow: 0 12px 30px rgba(30, 36, 51, 0.10);
+      padding: 32px;
+      text-align: center;
+    }
+    .spinner {
+      width: 38px;
+      height: 38px;
+      margin: 0 auto 18px;
+      border: 4px solid #dbe0f0;
+      border-top-color: var(--primario);
+      border-radius: 50%;
+      animation: girar 0.9s linear infinite;
+    }
+    @keyframes girar { to { transform: rotate(360deg); } }
+    h1 { margin: 0 0 10px; font-size: 1.45rem; }
+    p { margin: 0 0 14px; color: var(--suave); line-height: 1.55; }
+    code {
+      background: #f1f3f9;
+      border-radius: 6px;
+      padding: 2px 6px;
+      font-size: 0.86em;
+      word-break: break-all;
+    }
+    .acciones { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 18px; }
+    .boton {
+      display: inline-block;
+      padding: 11px 18px;
+      border-radius: 10px;
+      background: var(--primario);
+      color: #fff;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    .boton:hover { background: #4338ca; }
+    .boton.secundario { background: #eef2ff; color: var(--primario); }
+    .ayuda {
+      margin-top: 22px;
+      text-align: left;
+      background: #fbfcff;
+      border: 1px solid var(--borde);
+      border-radius: 10px;
+      padding: 14px 16px;
+      color: var(--suave);
+      font-size: 0.88rem;
+    }
+    .ayuda summary { cursor: pointer; color: var(--texto); font-weight: 600; }
+    .ayuda pre {
+      margin: 10px 0 0;
+      padding: 10px;
+      background: #111827;
+      color: #e5e7eb;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 0.8rem;
+    }
+    .nota { margin-top: 18px; font-size: 0.78rem; color: var(--suave); }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="spinner" aria-hidden="true"></div>
+    <h1>Abriendo la aplicación…</h1>
+    <p id="mensaje">Buscando el servidor local en <code>http://127.0.0.1:8000/</code>.</p>
+
+    <div class="acciones">
+      <a class="boton" href="http://127.0.0.1:8000/">Abrir servidor local</a>
+      <a class="boton secundario" href="app/static/index.html">Abrir archivo del frontend</a>
+    </div>
+
+    <details class="ayuda" id="ayuda" hidden>
+      <summary>¿El servidor no está iniciado?</summary>
+      <p>Ejecuta este comando en PowerShell desde <code>E:\gatos</code>:</p>
+      <pre>E:\gatos\venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000</pre>
+      <p>Después abre <code>http://127.0.0.1:8000/</code>.</p>
+    </details>
+
+    <p class="nota">
+      La página web real está en <code>app/static/index.html</code> y se sirve en
+      <code>http://127.0.0.1:8000/</code>.
+    </p>
+  </main>
+
+  <script>
+    (async function () {
+      // Si se abre desde file:// o localhost, se intenta usar el servidor FastAPI.
+      // En un hosting remoto (por ejemplo GitHub Pages) se redirige al archivo del frontend.
+      const esLocal = ["localhost", "127.0.0.1", ""].includes(location.hostname)
+        || location.protocol === "file:";
+      const forzarArchivo = new URLSearchParams(location.search).get("archivo") === "1";
+
+      if (!esLocal || forzarArchivo) {
+        location.replace("app/static/index.html");
+        return;
+      }
+
+      const mensaje = document.getElementById("mensaje");
+      const ayuda = document.getElementById("ayuda");
+
+      try {
+        const respuesta = await fetch("http://127.0.0.1:8000/health", { cache: "no-store" });
+        if (respuesta.ok) {
+          mensaje.textContent = "Servidor encontrado. Redirigiendo a la aplicación…";
+          location.replace("http://127.0.0.1:8000/");
+          return;
+        }
+      } catch (_) {
+        // El servidor no está disponible: se muestra la ayuda.
+      }
+
+      mensaje.textContent = "No se detectó el servidor en http://127.0.0.1:8000/. Inícialo con el comando de abajo o abre el archivo del frontend.";
+      ayuda.hidden = false;
+    })();
+  </script>
+</body>
+</html>
