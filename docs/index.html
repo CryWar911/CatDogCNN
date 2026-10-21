@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gatos vs Perros CNN</title>
+<meta name="description" content="Clasificador de gatos y perros con una red neuronal convolucional que se ejecuta en tu navegador.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f6f5f2;
+  --surface: #fcfcfb;
+  --surface-2: #efeee9;
+  --border: #dddcd5;
+  --text: #0b0b0b;
+  --text-2: #52514e;
+  --text-3: #7a7973;
+  --accent: #2a78d6;
+  --cat: #2a78d6;
+  --dog: #eb6834;
+  --grid: #e6e5df;
+  --good: #008300;
+  --bad: #e34948;
+  --shadow: 0 1px 2px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.05);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #121211;
+    --surface: #1a1a19;
+    --surface-2: #232321;
+    --border: #33332f;
+    --text: #f0efec;
+    --text-2: #c3c2b7;
+    --text-3: #8e8d85;
+    --accent: #3987e5;
+    --cat: #3987e5;
+    --dog: #d95926;
+    --grid: #2a2a27;
+    --good: #2fa52f;
+    --bad: #e66767;
+    --shadow: 0 1px 2px rgba(0,0,0,.3);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #121211;
+  --surface: #1a1a19;
+  --surface-2: #232321;
+  --border: #33332f;
+  --text: #f0efec;
+  --text-2: #c3c2b7;
+  --text-3: #8e8d85;
+  --accent: #3987e5;
+  --cat: #3987e5;
+  --dog: #d95926;
+  --grid: #2a2a27;
+  --good: #2fa52f;
+  --bad: #e66767;
+  --shadow: 0 1px 2px rgba(0,0,0,.3);
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--text);
+  font: 15px/1.55 Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+header.hero { padding: 48px 0 24px; }
+.eyebrow { font: 500 12px/1 "JetBrains Mono", monospace; letter-spacing: .08em; text-transform: uppercase; color: var(--text-3); }
+h1 { font-size: clamp(28px, 5vw, 42px); line-height: 1.1; margin: 12px 0 12px; letter-spacing: -.02em; }
+h2 { font-size: 22px; margin: 0 0 4px; letter-spacing: -.01em; }
+h3 { font-size: 15px; margin: 0 0 8px; }
+p.lead { color: var(--text-2); max-width: 680px; margin: 0; font-size: 16px; }
+.sub { color: var(--text-2); margin: 0 0 20px; max-width: 720px; }
+.stats { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+.stat { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; min-width: 140px; }
+.stat b { display: block; font-size: 22px; letter-spacing: -.01em; }
+.stat span { color: var(--text-3); font-size: 13px; }
+section { padding: 28px 0; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow); padding: 20px; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
+@media (max-width: 760px) { .grid2 { grid-template-columns: minmax(0, 1fr); } }
+
+/* Zona de carga */
+.drop {
+  display: block; border: 2px dashed var(--border); border-radius: 14px; padding: 28px 16px; text-align: center;
+  cursor: pointer; transition: border-color .15s, background .15s; background: var(--surface-2);
+}
+.drop:hover, .drop.over { border-color: var(--accent); }
+.drop strong { display: block; font-size: 16px; margin-bottom: 4px; }
+.drop small { color: var(--text-3); }
+.btn {
+  appearance: none; border: 1px solid var(--border); background: var(--surface); color: var(--text);
+  border-radius: 10px; padding: 8px 14px; font: 500 14px Inter, system-ui, sans-serif; cursor: pointer;
+}
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: #fff; border-color: transparent; }
+.examples { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; margin-top: 14px; }
+.examples img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid transparent; transition: transform .1s; }
+.examples img:hover { transform: scale(1.04); border-color: var(--accent); }
+.label-sm { font-size: 13px; color: var(--text-3); margin: 16px 0 6px; }
+
+/* Resultado */
+.preview { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; }
+.imgbox { position: relative; width: 256px; max-width: 100%; aspect-ratio: 1; border-radius: 12px; overflow: hidden; background: var(--surface-2); border: 1px solid var(--border); }
+.imgbox canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+#camCanvas { opacity: 0; transition: opacity .25s; image-rendering: auto; }
+.imgbox.showcam #camCanvas { opacity: .62; }
+.empty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--text-3); font-size: 13px; text-align: center; padding: 16px; }
+.verdict { font-size: 30px; font-weight: 700; letter-spacing: -.02em; margin: 2px 0 2px; }
+.conf { color: var(--text-2); margin-bottom: 14px; }
+.bar { margin: 10px 0; }
+.bar .row { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 4px; }
+.bar .track { height: 12px; border-radius: 6px; background: var(--surface-2); overflow: hidden; }
+.bar .fill { height: 100%; border-radius: 0 4px 4px 0; width: 0; transition: width .5s cubic-bezier(.2,.8,.2,1); }
+.toggle { display: inline-flex; gap: 8px; align-items: center; font-size: 14px; color: var(--text-2); cursor: pointer; margin-top: 10px; user-select: none; }
+.toggle input { accent-color: var(--accent); width: 16px; height: 16px; }
+.hint { font-size: 13px; color: var(--text-3); margin-top: 8px; }
+.status { font: 12px "JetBrains Mono", monospace; color: var(--text-3); }
+
+/* Arquitectura */
+.pipeline { display: flex; gap: 8px; overflow-x: auto; padding: 4px 2px 10px; scrollbar-width: thin; }
+.stage {
+  flex: 0 0 auto; min-width: 118px; border: 1px solid var(--border); background: var(--surface-2);
+  border-radius: 12px; padding: 10px 12px; cursor: default; text-align: left; color: var(--text);
+  font: inherit; position: relative;
+}
+.stage.click { cursor: pointer; }
+.stage.click:hover { border-color: var(--accent); }
+.stage.active { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: var(--surface); }
+.stage .t { font-weight: 600; font-size: 14px; }
+.stage .d { font: 12px "JetBrains Mono", monospace; color: var(--text-3); }
+.stage .ops { font-size: 12px; color: var(--text-2); margin-top: 4px; }
+.arrow { flex: 0 0 auto; align-self: center; color: var(--text-3); }
+.fmaps { display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; margin-top: 14px; }
+.fmap { text-align: center; }
+.fmap canvas { width: 100%; aspect-ratio: 1; border-radius: 6px; image-rendering: pixelated; background: var(--surface-2); display: block; }
+.fmap span { font: 11px "JetBrains Mono", monospace; color: var(--text-3); }
+.dense { display: grid; grid-template-columns: repeat(32, 1fr); gap: 2px; margin-top: 14px; }
+.dense div { aspect-ratio: 1; border-radius: 2px; }
+.blockinfo { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+.blockinfo p { margin: 0; color: var(--text-2); max-width: 640px; }
+
+/* Filtros */
+.filters { display: grid; grid-template-columns: repeat(16, minmax(0, 1fr)); gap: 6px; }
+@media (max-width: 640px) { .filters { grid-template-columns: repeat(8, minmax(0, 1fr)); } }
+.filters canvas { width: 100%; aspect-ratio: 1; image-rendering: pixelated; border-radius: 4px; border: 1px solid var(--border); }
+
+/* Grafico */
+.chart { position: relative; }
+.chart svg { width: 100%; height: auto; display: block; overflow: visible; }
+.chart text { font: 12px Inter, system-ui, sans-serif; fill: var(--text-3); }
+.legend { display: flex; gap: 16px; font-size: 13px; color: var(--text-2); margin-bottom: 8px; flex-wrap: wrap; }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+.tip {
+  position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 10px; font-size: 13px; box-shadow: var(--shadow); opacity: 0; transition: opacity .1s; white-space: nowrap; color: var(--text);
+}
+.tip .k { color: var(--text-2); }
+.cm { border-collapse: separate; border-spacing: 2px; font-size: 14px; margin-top: 4px; }
+.cm th { font-weight: 500; color: var(--text-2); padding: 6px 10px; font-size: 13px; }
+.cm td { width: 96px; height: 64px; text-align: center; border-radius: 6px; font-weight: 600; }
+.cm .lab { color: var(--text-3); font-size: 12px; font-weight: 400; display: block; }
+details { margin-top: 10px; }
+summary { cursor: pointer; color: var(--text-2); font-size: 14px; }
+table.data { border-collapse: collapse; font-size: 13px; margin-top: 8px; width: 100%; }
+table.data th, table.data td { border-bottom: 1px solid var(--border); padding: 4px 8px; text-align: right; }
+table.data th:first-child, table.data td:first-child { text-align: left; }
+.steps { counter-reset: s; list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+.steps li { counter-increment: s; padding-left: 36px; position: relative; color: var(--text-2); }
+.steps li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 24px; height: 24px; border-radius: 50%; background: var(--surface-2); border: 1px solid var(--border); display: grid; place-items: center; font-size: 12px; font-weight: 600; color: var(--text); }
+.steps b { color: var(--text); }
+footer { padding: 32px 0 48px; color: var(--text-3); font-size: 13px; }
+code { font-family: "JetBrains Mono", monospace; font-size: .9em; background: var(--surface-2); padding: 1px 5px; border-radius: 4px; }
+.themebtn { position: absolute; top: 16px; right: 16px; }
+</style>
+</head>
+<body>
+<button class="btn themebtn" id="themeBtn" aria-label="Cambiar tema">◐</button>
+
+<div class="wrap">
+  <header class="hero">
+    <div class="eyebrow">Red neuronal convolucional · se ejecuta en tu navegador</div>
+    <h1>¿Gato o perro?</h1>
+    <p class="lead">Una CNN entrenada desde cero con 25 000 fotos. Sube una imagen y mira cómo la red la transforma capa a capa hasta decidir. Nada se envía a ningún servidor: el modelo corre localmente con ONNX Runtime Web.</p>
+    <div class="stats" id="stats"></div>
+  </header>
+
+  <!-- Clasificador -->
+  <section id="clasificar">
+    <div class="grid2">
+      <div class="card">
+        <h2>1 · Elige una imagen</h2>
+        <p class="sub">Arrastra una foto, pégala con Ctrl+V o elige uno de los ejemplos del conjunto de prueba (imágenes que la red nunca vio al entrenar).</p>
+        <label class="drop" id="drop">
+          <input type="file" id="file" accept="image/*" hidden>
+          <strong>Suelta una imagen aquí</strong>
+          <small>o haz clic para elegir un archivo</small>
+        </label>
+        <div class="label-sm">Ejemplos</div>
+        <div class="examples" id="examples"></div>
+      </div>
+
+      <div class="card">
+        <h2>2 · Predicción</h2>
+        <div class="status" id="status">Cargando modelo…</div>
+        <div class="preview" style="margin-top:12px">
+          <div class="imgbox" id="imgbox">
+            <canvas id="inputCanvas" width="128" height="128"></canvas>
+            <canvas id="camCanvas" width="128" height="128"></canvas>
+            <div class="empty" id="empty">La imagen se redimensiona a 128×128, que es lo que ve la red</div>
+          </div>
+          <div style="flex:1;min-width:200px">
+            <div class="verdict" id="verdict">—</div>
+            <div class="conf" id="conf">&nbsp;</div>
+            <div class="bar"><div class="row"><span>🐱 Gato</span><span id="pCat">–</span></div><div class="track"><div class="fill" id="bCat" style="background:var(--cat)"></div></div></div>
+            <div class="bar"><div class="row"><span>🐶 Perro</span><span id="pDog">–</span></div><div class="track"><div class="fill" id="bDog" style="background:var(--dog)"></div></div></div>
+            <label class="toggle"><input type="checkbox" id="camToggle" checked> Mostrar mapa de atención (CAM)</label>
+            <div class="hint">Las zonas cálidas son las que más empujaron a la red hacia su respuesta.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Dentro de la CNN -->
+  <section id="dentro">
+    <div class="card">
+      <h2>3 · Dentro de la CNN</h2>
+      <p class="sub">Cada bloque aplica dos convoluciones 3×3 (con BatchNorm y ReLU) y un max-pooling que reduce el tamaño a la mitad. Haz clic en un bloque para ver sus mapas de activación para la imagen actual.</p>
+      <div class="pipeline" id="pipeline"></div>
+      <div class="blockinfo">
+        <p id="blockDesc"></p>
+        <label class="toggle" style="margin:0"><input type="checkbox" id="allMaps"> Ver todos los canales</label>
+      </div>
+      <div id="maps"></div>
+    </div>
+  </section>
+
+  <!-- Filtros + entrenamiento -->
+  <section id="entrenamiento">
+    <div class="grid2">
+      <div class="card">
+        <h2>Filtros de la primera capa</h2>
+        <p class="sub">Los 32 kernels 3×3 aprendidos por la primera convolución, vistos como pequeñas imágenes RGB. Detectan bordes, colores y contrastes básicos.</p>
+        <div class="filters" id="filters"></div>
+        <h3 style="margin-top:24px">Matriz de confusión (conjunto de prueba)</h3>
+        <table class="cm" id="cm"></table>
+      </div>
+      <div class="card">
+        <h2>Precisión durante el entrenamiento</h2>
+        <p class="sub" id="trainSub">Precisión por época en entrenamiento (con aumento de datos) y validación.</p>
+        <div class="legend"><span><i style="background:var(--cat)"></i>Entrenamiento</span><span><i style="background:var(--dog)"></i>Validación</span></div>
+        <div class="chart" id="chart"><div class="tip" id="tip"></div></div>
+        <details><summary>Ver tabla de datos</summary><table class="data" id="histTable"></table></details>
+      </div>
+    </div>
+  </section>
+
+  <section id="como">
+    <div class="card">
+      <h2>Cómo funciona</h2>
+      <ol class="steps" style="margin-top:14px">
+        <li><b>Datos.</b> Dataset <i>PetImages</i> (Microsoft / Kaggle): 12 500 gatos y 12 500 perros. Se descartan imágenes corruptas y todo se redimensiona a 128×128. División 80 / 10 / 10 en entrenamiento, validación y prueba.</li>
+        <li><b>Aumento de datos.</b> En cada época, las imágenes se rotan, escalan, desplazan, voltean y se cambia su brillo, contraste y saturación para que la red generalice.</li>
+        <li><b>Arquitectura.</b> 4 bloques convolucionales (32 → 64 → 128 → 256 filtros), <i>Global Average Pooling</i>, dropout y una capa densa con softmax de 2 salidas.</li>
+        <li><b>Entrenamiento.</b> PyTorch, AdamW con <i>One-Cycle LR</i> y <i>label smoothing</i>. Se guarda el modelo con mejor precisión de validación.</li>
+        <li><b>Despliegue.</b> El modelo se exporta a ONNX y se ejecuta en el navegador con ONNX Runtime Web (WebAssembly). El CAM sale de multiplicar los mapas del bloque 4 por los pesos de la capa densa.</li>
+      </ol>
+    </div>
+  </section>
+
+  <footer>Hecho con PyTorch y ONNX Runtime Web · Todo el cómputo ocurre en tu dispositivo.</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const SIZE = 128;
+let session = null, meta = null, last = null, selectedBlock = 0;
+
+// ---------- Tema ----------
+(function () {
+  let saved = null;
+  try { saved = localStorage.getItem("theme"); } catch (e) {}
+  if (saved) document.documentElement.dataset.theme = saved;
+  $("themeBtn").onclick = () => {
+    const cur = document.documentElement.dataset.theme ||
+      (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    const next = cur === "dark" ? "light" : "dark";
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem("theme", next); } catch (e) {}
+    if (meta) drawChart();
+    if (last) renderAll();
+  };
+})();
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+const BLOCKS = [
+  { name: "Bloque 1", key: "act1", ch: 32, hw: 64, desc: "Bloque 1 (32 canales, 64×64): detecta rasgos simples como bordes, esquinas y manchas de color." },
+  { name: "Bloque 2", key: "act2", ch: 64, hw: 32, desc: "Bloque 2 (64 canales, 32×32): combina bordes en texturas y patrones (pelo, rayas, contornos)." },
+  { name: "Bloque 3", key: "act3", ch: 128, hw: 16, desc: "Bloque 3 (128 canales, 16×16): responde a partes más complejas: ojos, orejas, hocicos." },
+  { name: "Bloque 4", key: "act4", ch: 256, hw: 8, desc: "Bloque 4 (256 canales, 8×8): conceptos de alto nivel. Su promedio (GAP) es el vector que usa la capa densa para decidir." },
+];
+
+// ---------- Carga ----------
+async function init() {
+  ort.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/";
+  ort.env.wasm.numThreads = 1;
+  try {
+    const [m, s] = await Promise.all([
+      fetch("model/metrics.json").then((r) => r.json()),
+      ort.InferenceSession.create("model/catdog_cnn.onnx", { executionProviders: ["wasm"] }),
+    ]);
+    meta = m; session = s;
+    $("status").textContent = "Modelo listo ✓";
+    renderStats(); drawFilters(); drawCM(); drawChart(); buildPipeline();
+  } catch (e) {
+    console.error(e);
+    $("status").textContent = "Error al cargar el modelo: " + e.message;
+  }
+  try {
+    const names = await fetch("examples/index.json").then((r) => r.json());
+    const box = $("examples");
+    names.forEach((n) => {
+      const img = document.createElement("img");
+      img.src = "examples/" + n; img.alt = n.replace(".jpg", "").replace("_", " ");
+      img.title = img.alt;
+      img.onclick = () => loadURL(img.src);
+      box.appendChild(img);
+    });
+    if (names.length) loadURL("examples/" + names[0]);
+  } catch (e) { console.warn(e); }
+}
+
+function renderStats() {
+  const s = [
+    [(meta.test_acc * 100).toFixed(1) + "%", "precisión en prueba"],
+    [(meta.params / 1e6).toFixed(2) + " M", "parámetros"],
+    [meta.split.train.toLocaleString("es"), "imágenes de entrenamiento"],
+    [meta.epochs, "épocas"],
+  ];
+  $("stats").innerHTML = s.map(([b, t]) => `<div class="stat"><b>${b}</b><span>${t}</span></div>`).join("");
+}
+
+// ---------- Entrada de imágenes ----------
+const drop = $("drop");
+$("file").onchange = (e) => e.target.files[0] && loadFile(e.target.files[0]);
+["dragenter", "dragover"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+["dragleave", "drop"].forEach((t) => drop.addEventListener(t, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", (e) => { const f = e.dataTransfer.files[0]; if (f) loadFile(f); });
+window.addEventListener("paste", (e) => {
+  const item = [...e.clipboardData.items].find((i) => i.type.startsWith("image/"));
+  if (item) loadFile(item.getAsFile());
+});
+function loadFile(f) { loadURL(URL.createObjectURL(f)); }
+function loadURL(url) {
+  const img = new Image();
+  img.onload = () => classify(img);
+  img.onerror = () => { $("status").textContent = "No se pudo leer la imagen"; };
+  img.src = url;
+}
+
+// ---------- Inferencia ----------
+async function classify(img) {
+  const c = $("inputCanvas"), ctx = c.getContext("2d", { willReadFrequently: true });
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(img, 0, 0, SIZE, SIZE); // igual que en el entrenamiento: se estira a 128x128
+  $("empty").style.display = "none";
+  if (!session) { $("status").textContent = "El modelo aún se está cargando…"; return; }
+  const px = ctx.getImageData(0, 0, SIZE, SIZE).data;
+  const input = new Float32Array(3 * SIZE * SIZE);
+  for (let i = 0; i < SIZE * SIZE; i++) {
+    input[i] = px[i * 4] / 255;
+    input[i + SIZE * SIZE] = px[i * 4 + 1] / 255;
+    input[i + 2 * SIZE * SIZE] = px[i * 4 + 2] / 255;
+  }
+  const t0 = performance.now();
+  const out = await session.run({ image: new ort.Tensor("float32", input, [1, 3, SIZE, SIZE]) });
+  const ms = performance.now() - t0;
+  last = {
+    probs: out.probs.data, cam: out.cam.data,
+    act1: out.act1.data, act2: out.act2.data, act3: out.act3.data, act4: out.act4.data,
+  };
+  $("status").textContent = `Inferencia en ${ms.toFixed(0)} ms`;
+  renderAll();
+}
+
+function renderAll() {
+  const [pc, pd] = last.probs;
+  const k = pd > pc ? 1 : 0;
+  const p = Math.max(pc, pd);
+  $("verdict").textContent = k ? "🐶 Perro" : "🐱 Gato";
+  const level = p > 0.9 ? "muy segura" : p > 0.7 ? "bastante segura" : "con dudas";
+  $("conf").textContent = `La red está ${level} (${(p * 100).toFixed(1)}%)`;
+  $("pCat").textContent = (pc * 100).toFixed(1) + "%";
+  $("pDog").textContent = (pd * 100).toFixed(1) + "%";
+  $("bCat").style.width = pc * 100 + "%";
+  $("bDog").style.width = pd * 100 + "%";
+  drawCAM(k);
+  updatePipeline();
+  drawMaps();
+}
+
+// Mapa de activación de clase: 8x8 -> 128x128, rampa transparente -> naranja -> amarillo
+function drawCAM(k) {
+  const cam = last.cam.subarray(k * 64, k * 64 + 64);
+  let mn = Infinity, mx = -Infinity;
+  for (const v of cam) { mn = Math.min(mn, v); mx = Math.max(mx, v); }
+  const small = document.createElement("canvas"); small.width = small.height = 8;
+  const sctx = small.getContext("2d"), id = sctx.createImageData(8, 8);
+  for (let i = 0; i < 64; i++) {
+    const t = (cam[i] - mn) / (mx - mn + 1e-6);
+    const [r, g, b] = heat(t);
+    id.data.set([r, g, b, Math.round(255 * Math.pow(t, 1.3))], i * 4);
+  }
+  sctx.putImageData(id, 0, 0);
+  const c = $("camCanvas"), ctx = c.getContext("2d");
+  ctx.clearRect(0, 0, SIZE, SIZE);
+  ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(small, 0, 0, SIZE, SIZE);
+}
+function heat(t) {
+  // rojo oscuro -> naranja -> amarillo claro
+  const stops = [[120, 20, 30], [235, 104, 52], [255, 225, 120]];
+  const x = t * (stops.length - 1), i = Math.min(Math.floor(x), stops.length - 2), f = x - i;
+  return stops[i].map((v, j) => Math.round(v + (stops[i + 1][j] - v) * f));
+}
+$("camToggle").onchange = (e) => $("imgbox").classList.toggle("showcam", e.target.checked);
+$("imgbox").classList.add("showcam");
+
+// ---------- Pipeline ----------
+function buildPipeline() {
+  const stages = [
+    { t: "Entrada", d: "3×128×128", ops: "RGB normalizado" },
+    ...BLOCKS.map((b, i) => ({ t: b.name, d: `${b.ch}×${b.hw}×${b.hw}`, ops: "conv·conv·pool", block: i })),
+    { t: "GAP", d: "256", ops: "promedio global", block: 4 },
+    { t: "Densa", d: "256 → 2", ops: "softmax" },
+  ];
+  const el = $("pipeline");
+  el.innerHTML = "";
+  stages.forEach((s, i) => {
+    if (i) { const a = document.createElement("span"); a.className = "arrow"; a.textContent = "→"; el.appendChild(a); }
+    const b = document.createElement(s.block !== undefined ? "button" : "div");
+    b.className = "stage" + (s.block !== undefined ? " click" : "");
+    b.innerHTML = `<div class="t">${s.t}</div><div class="d">${s.d}</div><div class="ops">${s.ops}</div>`;
+    if (s.block !== undefined) {
+      b.dataset.block = s.block;
+      b.onclick = () => { selectedBlock = s.block; updatePipeline(); drawMaps(); };
+    }
+    el.appendChild(b);
+  });
+  updatePipeline();
+}
+function updatePipeline() {
+  document.querySelectorAll(".stage[data-block]").forEach((b) => b.classList.toggle("active", +b.dataset.block === selectedBlock));
+  $("blockDesc").textContent = selectedBlock < 4 ? BLOCKS[selectedBlock].desc
+    : "Global Average Pooling: cada uno de los 256 mapas del bloque 4 se resume en un número. Abajo, ese vector coloreado por la contribución de cada neurona a la clase ganadora (naranja = empuja a favor, azul = en contra).";
+  $("allMaps").parentElement.style.display = selectedBlock < 4 ? "" : "none";
+}
+$("allMaps").onchange = () => last && drawMaps();
+
+function drawMaps() {
+  const box = $("maps");
+  if (!last) { box.innerHTML = '<p class="hint">Elige una imagen para ver las activaciones.</p>'; return; }
+  if (selectedBlock === 4) return drawGAP(box);
+  const B = BLOCKS[selectedBlock], data = last[B.key], hw = B.hw * B.hw;
+  // Ordenar canales por activación media (los más activos primero)
+  const means = [];
+  for (let c = 0; c < B.ch; c++) {
+    let s = 0; for (let i = 0; i < hw; i++) s += data[c * hw + i];
+    means.push([c, s / hw]);
+  }
+  means.sort((a, b) => b[1] - a[1]);
+  const show = $("allMaps").checked ? means : means.slice(0, 24);
+  const frag = document.createElement("div"); frag.className = "fmaps";
+  for (const [c] of show) {
+    const cv = document.createElement("canvas"); cv.width = cv.height = B.hw;
+    const ctx = cv.getContext("2d"), id = ctx.createImageData(B.hw, B.hw);
+    let mx = 0; for (let i = 0; i < hw; i++) mx = Math.max(mx, data[c * hw + i]);
+    for (let i = 0; i < hw; i++) {
+      const v = mx > 0 ? data[c * hw + i] / mx : 0;
+      const [r, g, b] = viridis(v);
+      id.data.set([r, g, b, 255], i * 4);
+    }
+    ctx.putImageData(id, 0, 0);
+    const d = document.createElement("div"); d.className = "fmap";
+    d.appendChild(cv);
+    const lbl = document.createElement("span"); lbl.textContent = "#" + c; d.appendChild(lbl);
+    frag.appendChild(d);
+  }
+  box.innerHTML = "";
+  const note = document.createElement("p"); note.className = "hint";
+  note.textContent = $("allMaps").checked ? `Los ${B.ch} canales, ordenados por activación media.` : `Los 24 canales más activos de ${B.ch}. Brillante = activación alta.`;
+  box.append(note, frag);
+}
+function viridis(t) {
+  const s = [[68, 1, 84], [59, 82, 139], [33, 145, 140], [94, 201, 98], [253, 231, 37]];
+  const x = Math.min(Math.max(t, 0), 1) * (s.length - 1), i = Math.min(Math.floor(x), s.length - 2), f = x - i;
+  return s[i].map((v, j) => Math.round(v + (s[i + 1][j] - v) * f));
+}
+function drawGAP(box) {
+  const a4 = last.act4, k = last.probs[1] > last.probs[0] ? 1 : 0;
+  const gap = [];
+  for (let c = 0; c < 256; c++) { let s = 0; for (let i = 0; i < 64; i++) s += a4[c * 64 + i]; gap.push(s / 64); }
+  const w = meta.fc_weight ? meta.fc_weight : null;
+  const contrib = gap.map((g, c) => w ? g * (w[k][c] - w[1 - k][c]) : g);
+  const mx = Math.max(...contrib.map(Math.abs)) || 1;
+  box.innerHTML = "";
+  const note = document.createElement("p"); note.className = "hint";
+  note.textContent = w ? "256 valores del vector GAP × peso de la capa densa hacia la clase ganadora." : "256 valores del vector GAP.";
+  const grid = document.createElement("div"); grid.className = "dense";
+  const pos = css("--dog"), neg = css("--cat");
+  contrib.forEach((v, c) => {
+    const d = document.createElement("div");
+    const t = Math.abs(v) / mx;
+    d.style.background = v >= 0 ? pos : neg;
+    d.style.opacity = (0.08 + 0.92 * t).toFixed(2);
+    d.title = `neurona ${c}: ${v.toFixed(3)}`;
+    grid.appendChild(d);
+  });
+  box.append(note, grid);
+}
+
+// ---------- Filtros conv1 ----------
+function drawFilters() {
+  const f = meta.conv1_filters, box = $("filters");
+  f.forEach((k) => {
+    let mn = Infinity, mx = -Infinity;
+    k.flat(2).forEach((v) => { mn = Math.min(mn, v); mx = Math.max(mx, v); });
+    const cv = document.createElement("canvas"); cv.width = cv.height = 3;
+    const ctx = cv.getContext("2d"), id = ctx.createImageData(3, 3);
+    for (let y = 0; y < 3; y++) for (let x = 0; x < 3; x++) {
+      const px = [0, 1, 2].map((ch) => Math.round(255 * (k[ch][y][x] - mn) / (mx - mn + 1e-8)));
+      id.data.set([...px, 255], (y * 3 + x) * 4);
+    }
+    ctx.putImageData(id, 0, 0);
+    box.appendChild(cv);
+  });
+}
+
+// ---------- Matriz de confusión ----------
+function drawCM() {
+  const cm = meta.confusion_matrix, names = ["Gato", "Perro"];
+  const total = cm.flat().reduce((a, b) => a + b, 0);
+  let h = `<tr><th></th><th>Pred. gato</th><th>Pred. perro</th></tr>`;
+  cm.forEach((row, i) => {
+    const rs = row.reduce((a, b) => a + b, 0);
+    h += `<tr><th style="text-align:right">Real ${names[i].toLowerCase()}</th>`;
+    row.forEach((v, j) => {
+      const share = v / rs, ok = i === j;
+      const bg = ok ? `color-mix(in srgb, var(--accent) ${Math.round(20 + 70 * share)}%, var(--surface))` : `color-mix(in srgb, var(--accent) ${Math.round(8 + 60 * share)}%, var(--surface))`;
+      const fg = ok && share > 0.5 ? "#fff" : "var(--text)";
+      h += `<td style="background:${bg};color:${fg}">${v.toLocaleString("es")}<span class="lab" style="color:${fg};opacity:.8">${(share * 100).toFixed(1)}%</span></td>`;
+    });
+    h += "</tr>";
+  });
+  $("cm").innerHTML = h;
+}
+
+// ---------- Gráfico de entrenamiento ----------
+function drawChart() {
+  const H = meta.history, box = $("chart"), tip = $("tip");
+  box.querySelector("svg")?.remove();
+  const W = 520, Ht = 280, m = { l: 44, r: 16, t: 10, b: 32 };
+  const iw = W - m.l - m.r, ih = Ht - m.t - m.b;
+  const vals = H.flatMap((d) => [d.train_acc, d.val_acc]);
+  const lo = Math.floor(Math.min(...vals) * 20) / 20, hi = 1;
+  const x = (e) => m.l + ((e - 1) / Math.max(H.length - 1, 1)) * iw;
+  const y = (v) => m.t + (1 - (v - lo) / (hi - lo)) * ih;
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  svg.setAttribute("viewBox", `0 0 ${W} ${Ht}`);
+  let g = "";
+  for (let v = lo; v <= hi + 1e-9; v += 0.05) {
+    g += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/>`;
+    g += `<text x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">${Math.round(v * 100)}%</text>`;
+  }
+  const step = Math.ceil(H.length / 6);
+  H.forEach((d) => { if ((d.epoch - 1) % step === 0 || d.epoch === H.length) g += `<text x="${x(d.epoch)}" y="${Ht - 10}" text-anchor="middle">${d.epoch}</text>`; });
+  const path = (k) => H.map((d, i) => `${i ? "L" : "M"}${x(d.epoch).toFixed(1)},${y(d[k]).toFixed(1)}`).join("");
+  g += `<path d="${path("train_acc")}" fill="none" stroke="var(--cat)" stroke-width="2" stroke-linejoin="round"/>`;
+  g += `<path d="${path("val_acc")}" fill="none" stroke="var(--dog)" stroke-width="2" stroke-linejoin="round"/>`;
+  const lastD = H[H.length - 1];
+  g += `<line id="xh" y1="${m.t}" y2="${m.t + ih}" stroke="var(--text-3)" stroke-dasharray="3 3" opacity="0"/>`;
+  g += `<circle id="d1" r="4" fill="var(--cat)" stroke="var(--surface)" stroke-width="2" opacity="0"/>`;
+  g += `<circle id="d2" r="4" fill="var(--dog)" stroke="var(--surface)" stroke-width="2" opacity="0"/>`;
+  g += `<rect x="${m.l}" y="${m.t}" width="${iw}" height="${ih}" fill="transparent" id="hit"/>`;
+  svg.innerHTML = g;
+  box.prepend(svg);
+  const hit = svg.querySelector("#hit");
+  const show = (ev) => {
+    const r = svg.getBoundingClientRect(), sx = (ev.clientX - r.left) * (W / r.width);
+    const e = Math.min(H.length, Math.max(1, Math.round(1 + ((sx - m.l) / iw) * (H.length - 1))));
+    const d = H[e - 1];
+    svg.querySelector("#xh").setAttribute("x1", x(e)); svg.querySelector("#xh").setAttribute("x2", x(e));
+    svg.querySelector("#xh").setAttribute("opacity", 1);
+    [["#d1", d.train_acc], ["#d2", d.val_acc]].forEach(([id, v]) => { const c = svg.querySelector(id); c.setAttribute("cx", x(e)); c.setAttribute("cy", y(v)); c.setAttribute("opacity", 1); });
+    tip.innerHTML = `<b>Época ${e}</b><br><span class="k">Entrenamiento</span> ${(d.train_acc * 100).toFixed(1)}%<br><span class="k">Validación</span> ${(d.val_acc * 100).toFixed(1)}%<br><span class="k">Pérdida</span> ${d.train_loss.toFixed(3)}`;
+    const px = x(e) * r.width / W;
+    tip.style.left = Math.min(px + 12, r.width - 170) + "px";
+    tip.style.top = "8px"; tip.style.opacity = 1;
+  };
+  hit.addEventListener("pointermove", show);
+  hit.addEventListener("pointerleave", () => { tip.style.opacity = 0; svg.querySelectorAll("#xh,#d1,#d2").forEach((n) => n.setAttribute("opacity", 0)); });
+  $("trainSub").textContent = `Precisión por época en entrenamiento (con aumento de datos) y validación. Mejor validación: ${(meta.best_val_acc * 100).toFixed(1)}%.`;
+  $("histTable").innerHTML = "<tr><th>Época</th><th>Pérdida</th><th>Entren.</th><th>Valid.</th></tr>" +
+    H.map((d) => `<tr><td>${d.epoch}</td><td>${d.train_loss.toFixed(3)}</td><td>${(d.train_acc * 100).toFixed(1)}%</td><td>${(d.val_acc * 100).toFixed(1)}%</td></tr>`).join("");
+}
+
+init();
+</script>
+</body>
+</html>
